@@ -146,9 +146,7 @@ class AgentPromptBuilder:
                 metadata=deepcopy(metadata) if metadata else {},
             )
         else:
-            self.add(
-                name, content, enabled=enabled, order=order, metadata=metadata
-            )
+            self.add(name, content, enabled=enabled, order=order, metadata=metadata)
         return self
 
     def set_content(self, name: str, content: str) -> AgentPromptBuilder:
@@ -173,9 +171,7 @@ class AgentPromptBuilder:
         self._get_or_raise(name).order = order
         return self
 
-    def set_metadata(
-        self, name: str, metadata: dict[str, Any]
-    ) -> AgentPromptBuilder:
+    def set_metadata(self, name: str, metadata: dict[str, Any]) -> AgentPromptBuilder:
         """Replace the metadata dict of an existing section.
 
         Raises :class:`KeyError` if *name* does not exist.
@@ -268,7 +264,12 @@ class AgentPromptBuilder:
         sec = self._get_or_raise(section)
         content = sec.content
         for key, value in variables.items():
-            content = re.sub(r"\{\{\s*" + re.escape(key) + r"\s*\}\}", value, content)
+            # Use a replacement function so the value is inserted literally;
+            # passing it as the ``repl`` string would interpret backslash
+            # sequences (e.g. ``\1``, ``\g<0>``) as regex group references and
+            # raise re.error or corrupt the output for arbitrary user values.
+            pattern = r"\{\{\s*" + re.escape(key) + r"\s*\}\}"
+            content = re.sub(pattern, lambda _m, v=value: v, content)
         sec.content = content
         return self
 

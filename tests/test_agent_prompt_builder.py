@@ -335,6 +335,61 @@ def test_substitute_returns_self():
     assert b.substitute("x", k="v") is b
 
 
+def test_substitute_value_with_backslash_group_reference():
+    # Regression: replacement values must be inserted literally, not
+    # interpreted as regex replacement templates (\1 is an invalid group
+    # reference and previously raised re.error).
+    b = AgentPromptBuilder().add("x", "Hello {{name}}")
+    b.substitute("x", name=r"\1 World $0")
+    assert b.render() == "Hello \\1 World $0"
+
+
+def test_substitute_value_with_backslashes():
+    b = AgentPromptBuilder().add("x", "Path: {{p}}")
+    b.substitute("x", p=r"C:\temp\new")
+    assert b.render() == "Path: C:\\temp\\new"
+
+
+def test_substitute_value_with_placeholder_of_already_done_key():
+    # A replacement value that contains a placeholder for a key that was
+    # already substituted must not be re-scanned (no infinite/retroactive
+    # substitution). Here ``b`` is processed before ``a``, so the ``{{b}}``
+    # introduced by ``a``'s value stays literal.
+    b = AgentPromptBuilder().add("x", "{{a}}")
+    b.substitute("x", b="DONE", a="{{b}}")
+    assert b.render() == "{{b}}"
+
+
+# ---------------------------------------------------------------------------
+# set_metadata()
+# ---------------------------------------------------------------------------
+
+
+def test_set_metadata():
+    b = AgentPromptBuilder().add("x", "y")
+    b.set_metadata("x", {"k": "v"})
+    assert b.get("x").metadata == {"k": "v"}
+
+
+def test_set_metadata_stores_copy():
+    meta = {"k": "v"}
+    b = AgentPromptBuilder().add("x", "y")
+    b.set_metadata("x", meta)
+    meta["extra"] = True
+    assert "extra" not in b.get("x").metadata
+
+
+def test_set_metadata_missing_raises():
+    b = AgentPromptBuilder()
+    with pytest.raises(KeyError):
+        b.set_metadata("missing", {"k": "v"})
+
+
+def test_set_metadata_returns_self():
+    b = AgentPromptBuilder().add("x", "y")
+    assert b.set_metadata("x", {}) is b
+
+
 # ---------------------------------------------------------------------------
 # render()
 # ---------------------------------------------------------------------------
