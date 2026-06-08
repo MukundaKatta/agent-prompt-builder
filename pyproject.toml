@@ -12,10 +12,16 @@ requires-python = ">=3.9"
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "ruff>=0.4"]
+# Tests use the standard-library ``unittest`` runner, so no test framework is
+# required: run ``python -m unittest discover -s tests``. The dev extra only
+# provides the linter.
+dev = ["ruff>=0.4"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/agent_prompt_builder"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/agent_prompt_builder/py.typed" = "agent_prompt_builder/py.typed"
 
 [tool.ruff]
 line-length = 88
